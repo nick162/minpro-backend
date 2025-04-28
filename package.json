@@ -1,0 +1,48 @@
+{
+  "name": "template-express-prisma",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "npm run build && node dist/index.js",
+    "dev": "nodemon src/index.ts",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.1",
+    "@types/jsonwebtoken": "^9.0.9",
+    "@types/multer": "^1.4.12",
+    "@types/node": "^22.14.0",
+    "@types/node-schedule": "^2.1.7",
+    "@types/nodemailer": "^6.4.17",
+    "@types/shortid": "^2.2.0",
+    "nodemon": "^3.1.9",
+    "shortid": "^2.2.17",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.6.0",
+    "argon2": "^0.41.1",
+    "bullmq": "^5.49.0",
+    "cloudinary": "^2.6.0",
+    "cors": "^2.8.5",
+    "dayjs": "^1.11.13",
+    "dotenv": "^16.4.7",
+    "express": "^5.1.0",
+    "express-validator": "^7.2.1",
+    "file-type": "^16.5.4",
+    "handlebars": "^4.7.8",
+    "ioredis": "^5.6.1",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^1.4.5-lts.2",
+    "node-schedule": "^2.1.1",
+    "nodemailer": "^6.10.1",
+    "prisma": "^6.6.0"
+  }
+}

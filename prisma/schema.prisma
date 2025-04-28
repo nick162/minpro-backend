@@ -1,0 +1,215 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql" // atau mysql sesuai kebutuhan
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id           Int       @id @default(autoincrement())
+  role         Role
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime?
+  name         String
+  email        String    @unique
+  username     String    @unique
+  password     String
+  profilePict  String?
+  referralCode String?
+
+  events            Event[]
+  transactions      Transaction[]
+  reviews           Review[]
+  vouchers          Voucher[]
+  points            Point[]
+  coupons           Coupon[]
+  referralHistories ReferralHistory[] @relation("UserReferralHistories")
+  referredHistories ReferralHistory[] @relation("ReferredUserReferralHistories")
+
+  @@map("users")
+}
+
+model Event {
+  id          Int       @id @default(autoincrement())
+  userId      Int
+  cityId      Int
+  category    Category
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  eventName   String
+  slug        String    @unique
+  description String
+  eventPict   String
+  startDate   DateTime
+  endDate     DateTime
+
+  user         User          @relation(fields: [userId], references: [id])
+  city         City          @relation(fields: [cityId], references: [id])
+  tickets      Ticket[]
+  transactions Transaction[]
+  reviews      Review[] // <--- tambahkan relasi ke Review
+  vouchers     Voucher[]
+
+  @@map("events")
+}
+
+model City {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  cityName  String
+
+  events Event[]
+
+  @@map("cities")
+}
+
+model Ticket {
+  id             Int       @id @default(autoincrement())
+  eventId        Int
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
+  ticketType     String
+  sold           Int       @default(0)
+  availableSeats Int
+  price          Int
+
+  event              Event               @relation(fields: [eventId], references: [id])
+  transactionDetails TransactionDetail[]
+
+  @@map("tickets")
+}
+
+model Transaction {
+  id         Int       @id @default(autoincrement())
+  userId     Int
+  eventId    Int
+  createdAt  DateTime  @default(now())
+  deletedAt  DateTime?
+  totalPrice Int
+  uuid       String    @unique
+
+  user               User                @relation(fields: [userId], references: [id])
+  event              Event               @relation(fields: [eventId], references: [id])
+  transactionDetails TransactionDetail[]
+  review             Review?
+
+  @@map("transactions")
+}
+
+model TransactionDetail {
+  id            Int       @id @default(autoincrement())
+  transactionId Int
+  ticketId      Int
+  uuid          String    @unique
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+  price         Int
+  qty           Int
+
+  transaction Transaction @relation(fields: [transactionId], references: [id])
+  ticket      Ticket      @relation(fields: [ticketId], references: [id])
+
+  @@map("transactiondetails")
+}
+
+model Review {
+  id            Int       @id @default(autoincrement())
+  transactionId Int       @unique
+  eventId       Int
+  userId        Int
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+  reviewDesc    String
+  rating        Int
+
+  transaction Transaction @relation(fields: [transactionId], references: [id])
+  event       Event       @relation(fields: [eventId], references: [id])
+  user        User        @relation(fields: [userId], references: [id])
+
+  @@map("reviews")
+}
+
+model Voucher {
+  id         Int       @id @default(autoincrement())
+  userId     Int
+  eventId    Int
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  deletedAt  DateTime?
+  amount     Int
+  quota      Int
+  claimed    Int
+  validUntil DateTime
+  code       String    @unique
+
+  user  User  @relation(fields: [userId], references: [id])
+  event Event @relation(fields: [eventId], references: [id])
+
+  @@map("vouchers")
+}
+
+model Coupon {
+  id         Int       @id @default(autoincrement())
+  userId     Int
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  deletedAt  DateTime?
+  amount     Int
+  usedAt     DateTime?
+  validUntil DateTime
+  code       String    @unique
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("coupons")
+}
+
+model Point {
+  id         Int       @id @default(autoincrement())
+  userId     Int
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  deletedAt  DateTime?
+  amount     Int
+  validUntil DateTime
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("points")
+}
+
+model ReferralHistory {
+  id             Int      @id @default(autoincrement())
+  userId         Int
+  referredUserId Int
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  amount         Int
+
+  user         User @relation("UserReferralHistories", fields: [userId], references: [id])
+  referredUser User @relation("ReferredUserReferralHistories", fields: [referredUserId], references: [id])
+
+  @@map("referralhistories")
+}
+
+enum Role {
+  CUSTOMER
+  EVENT_ORGANIZER
+  ADMIN
+}
+
+enum Category {
+  FOOD
+  SPORT
+  HEALTH
+  TECHNOLOGY
+}
