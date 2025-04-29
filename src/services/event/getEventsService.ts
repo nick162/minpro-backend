@@ -1,6 +1,5 @@
 import { Prisma } from "@prisma/client";
 import prisma from "../../config/prisma";
-import { ApiError } from "../../utils/api-error";
 import { PaginationQueryParams } from "../../types/pagination";
 
 interface GetQueryParams extends PaginationQueryParams {
