@@ -1,19 +1,48 @@
+import { Prisma } from "@prisma/client";
 import prisma from "../../config/prisma";
 import { ApiError } from "../../utils/api-error";
+import { PaginationQueryParams } from "../../types/pagination";
 
-export const getEventsService = async () => {
-  const events = await prisma.event.findMany({
-    where: { deletedAt: null },
-    orderBy: { createdAt: "desc" },
-    include: { city: { select: { cityName: true } } },
-  });
+interface GetQueryParams extends PaginationQueryParams {
+  search?: string;
+}
 
-  if (!events || events.length === 0) {
-    throw new ApiError("No events found", 404);
+export const getEventsService = async (query: GetQueryParams) => {
+  const {
+    page = 1,
+    take = 10,
+    sortBy = "createdAt",
+    sortOrder = "desc",
+    search,
+  } = query;
+
+  const whereClause: Prisma.EventWhereInput = {
+    deletedAt: null,
+  };
+
+  if (search) {
+    whereClause.slug = {
+      contains: search,
+      mode: "insensitive", // typo fix
+    };
   }
 
+  const event = await prisma.event.findMany({
+    where: whereClause,
+    orderBy: { [sortBy]: sortOrder },
+    skip: (page - 1) * take,
+    take,
+    include: { user: { omit: { password: true } } },
+  });
+
+  const count = await prisma.event.count({ where: whereClause });
+
   return {
-    message: "All available events",
-    events,
+    data: event,
+    meta: {
+      page,
+      take,
+      total: count,
+    },
   };
 };

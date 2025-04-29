@@ -90,12 +90,19 @@ export const getEventsByCategoryController = async (
   }
 };
 export const getEventsController = async (
-  _req: Request,
+  req: Request,
   res: Response,
   next: NextFunction
 ) => {
   try {
-    const result = await getEventsService();
+    const query = {
+      page: parseInt(req.query.page as string) || 1,
+      take: parseInt(req.query.page as string) || 5,
+      sortOrder: (req.query.sortOrder as string) || "desc",
+      sortBy: (req.query.sortBy as string) || "createdAt",
+      search: (req.query.search as string) || "",
+    };
+    const result = await getEventsService(query);
     res.status(200).send(result);
   } catch (error) {
     next(error);

@@ -4,6 +4,7 @@ import { ApiError } from "../../utils/api-error";
 export const getEventDetailService = async (slug: string) => {
   const event = await prisma.event.findFirst({
     where: { slug, deletedAt: null },
+    include: { city: { select: { cityName: true } } },
   });
 
   if (!event) {
