@@ -5,6 +5,7 @@ export const getEventsService = async () => {
   const events = await prisma.event.findMany({
     where: { deletedAt: null },
     orderBy: { createdAt: "desc" },
+    include: { city: { select: { cityName: true } } },
   });
 
   if (!events || events.length === 0) {

@@ -32,7 +32,7 @@ export const updateEventService = async (
   // 4. If thumbnail is provided, upload to Cloudinary
   if (thumbnail) {
     const { secure_url } = await cloudinaryUpload(thumbnail);
-    body.eventPict = secure_url;
+    body.thumbnail = secure_url;
   }
 
   // 5. Update event

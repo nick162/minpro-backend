@@ -44,7 +44,7 @@ model Event {
   eventName   String
   slug        String    @unique
   description String
-  eventPict   String
+  thumbnail   String
   startDate   DateTime
   endDate     DateTime
 

@@ -4,6 +4,8 @@ import { getEventDetailService } from "../services/event/getEventDetailService";
 import { getEventsService } from "../services/event/getEventsService";
 import { getEventByCategoryService } from "../services/event/getEventByCategory";
 import { deleteEventService } from "../services/event/deleteEventService";
+import { ApiError } from "../utils/api-error";
+import { updateEventService } from "../services/event/updateEventService";
 
 export const createEventController = async (
   req: Request,
@@ -11,9 +13,49 @@ export const createEventController = async (
   next: NextFunction
 ) => {
   try {
+    const user = res.locals.user;
+    if (!user?.id) {
+      throw new ApiError("Unauthorized: user ID not found", 401);
+    }
     const files = req.files as { [fieldname: string]: Express.Multer.File[] };
     const thumbnail = files.thumbnail?.[0];
-    const result = await createEventService(req.body, thumbnail);
+    const result = await createEventService(
+      { ...req.body, userId: user.id },
+      thumbnail
+    );
+    res.status(200).send(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const updateEventController = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const user = res.locals.user;
+    if (!user?.id) {
+      throw new ApiError("Unauthorized: user ID not found", 401);
+    }
+
+    const eventId = parseInt(req.params.id);
+    if (isNaN(eventId)) {
+      throw new ApiError("Invalid event ID", 400);
+    }
+
+    const files =
+      (req.files as { [fieldname: string]: Express.Multer.File[] }) || {};
+    const thumbnail = files?.thumbnail?.[0];
+
+    const result = await updateEventService(
+      eventId,
+      user.id, // <- ini posisi userId yang benar
+      req.body,
+      thumbnail
+    );
+
     res.status(200).send(result);
   } catch (error) {
     next(error);

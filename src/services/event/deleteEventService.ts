@@ -16,6 +16,6 @@ export const deleteEventService = async (id: number, authUserId: number) => {
 
   await prisma.event.update({
     where: { id },
-    data: { deletedAt: new Date(), eventPict: "" },
+    data: { deletedAt: new Date(), thumbnail: "" },
   });
 };
