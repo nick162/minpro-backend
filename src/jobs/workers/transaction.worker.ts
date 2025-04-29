@@ -1,40 +1,40 @@
+// src/jobs/workers/transaction.worker.ts
 import { Worker } from "bullmq";
 import prisma from "../../config/prisma";
-import { ApiError } from "../../utils/api-error";
 import { redisConnection } from "../../lib/redis";
 
 export const userTransactionWorker = new Worker(
   "user-transaction-queue",
   async (job) => {
-    // add logic here
-    // Cek transaksi berrdasarkan uuid
-    // if status is waiting for payment
-    // update the transation into expired
-    // just rollback the stock based on qty
-    // is the status is other than waiting for payment, dont make an action
     const uuid = job.data.uuid;
 
-    const transaction = await prisma.transaction.findFirst({
+    const transaction = await prisma.transaction.findUnique({
       where: { uuid },
     });
 
-    if (!transaction) {
-      throw new ApiError("invalid transaction uiid", 400);
-    }
+    if (!transaction) return;
 
-    if (transaction.status === "WAITING_PAYMENT") {
+    if (transaction.status === "WAITING_FOR_PAYMENT") {
       await prisma.$transaction(async (tx) => {
-        // proses 1
         await tx.transaction.update({
           where: { uuid },
           data: { status: "EXPIRED" },
         });
 
-        //where 2
-        await tx.ticket.update({
-          where: { id: transaction.ticketId },
-          data: { stock: { increment: transaction.quantity } },
+        const detail = await tx.transactionDetail.findFirst({
+          where: { transactionId: transaction.id },
         });
+
+        if (detail) {
+          await tx.ticket.update({
+            where: { id: detail.ticketId },
+            data: {
+              availableSeats: {
+                increment: detail.qty,
+              },
+            },
+          });
+        }
       });
     }
   },

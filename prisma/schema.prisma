@@ -87,13 +87,14 @@ model Ticket {
 }
 
 model Transaction {
-  id         Int       @id @default(autoincrement())
+  id         Int               @id @default(autoincrement())
   userId     Int
   eventId    Int
-  createdAt  DateTime  @default(now())
+  createdAt  DateTime          @default(now())
   deletedAt  DateTime?
   totalPrice Int
-  uuid       String    @unique
+  status     TransactionStatus
+  uuid       String            @unique
 
   user               User                @relation(fields: [userId], references: [id])
   event              Event               @relation(fields: [eventId], references: [id])
@@ -212,4 +213,13 @@ enum Category {
   SPORT
   HEALTH
   TECHNOLOGY
+}
+
+enum TransactionStatus {
+  EXPIRED
+  WAITING_FOR_PAYMENT
+  ACCEPTED
+  REJECT
+  WAITING_FOR_ADMIN_CONFIRMATION
+  CANCELED
 }
