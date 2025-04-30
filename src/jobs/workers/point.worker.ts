@@ -8,28 +8,22 @@ export const pointWorker = new Worker(
   async (job) => {
     const { userId, points, type } = job.data;
 
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
+    const user = await prisma.user.findFirst({
+      where: {
+        id: userId,
+        deletedAt: null,
+      },
     });
 
     if (!user) throw new ApiError("User not found", 404);
 
-    // Tambah point ke user
-    const amount = 0;
-    await prisma.$transaction([
-      prisma.user.update({
-        where: { id: userId },
-        data: { points: { increment: points } },
-      }),
-      prisma.pointsHistory.create({
-        data: {
-          userId,
-          type,
-          points,
-          expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000 * 3),
-        },
-      }),
-    ]);
+    await prisma.point.create({
+      data: {
+        userId,
+        amount: points,
+        validUntil: new Date(Date.now() + 1000 * 60 * 60 * 24 * 90), // 3 bulan
+      },
+    });
   },
   { connection: redisConnection }
 );

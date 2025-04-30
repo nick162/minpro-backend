@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && cpx src/templates/**/* dist/templates",
     "start": "npm run build && node dist/index.js",
     "dev": "nodemon src/index.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -21,6 +21,7 @@
     "@types/node-schedule": "^2.1.7",
     "@types/nodemailer": "^6.4.17",
     "@types/shortid": "^2.2.0",
+    "cpx2": "^8.0.0",
     "nodemon": "^3.1.9",
     "shortid": "^2.2.17",
     "ts-node": "^10.9.2",
