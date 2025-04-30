@@ -1,7 +1,7 @@
 import dayjs from "dayjs";
 import { ApiError } from "../../utils/api-error";
 import prisma from "../../config/prisma";
-import { Prisma } from "@prisma/client";
+import { Prisma, PointsType } from "@prisma/client";
 import crypto from "crypto";
 
 interface CreateTransactionInput {
@@ -90,21 +90,24 @@ export const createTransactionService = async (
 
   const uuid = crypto.randomUUID();
 
-  // Jalankan dalam transaksi database
+  // Jalankan transaksi DB
   const transaction = await prisma.$transaction(async (tx) => {
+    // 1. Buat transaksi
     const trx = await tx.transaction.create({
       data: {
         userId,
         eventId,
         totalPrice,
         uuid,
-        status: "WAITING_FOR_PAYMENT", // status awal
+        usedPoint: pointsToUse,
+        status: "WAITING_FOR_PAYMENT",
       },
     });
 
+    // 2. Buat detail transaksi
     await tx.transactionDetail.create({
       data: {
-        uuid: crypto.randomUUID(), // tambah field ini
+        uuid: crypto.randomUUID(),
         transactionId: trx.id,
         ticketId,
         qty: quantity,
@@ -112,7 +115,7 @@ export const createTransactionService = async (
       },
     });
 
-    // Kurangi ketersediaan kursi
+    // 3. Kurangi jumlah kursi tersedia
     await tx.ticket.update({
       where: { id: ticketId },
       data: {
@@ -122,7 +125,7 @@ export const createTransactionService = async (
       },
     });
 
-    // Tandai kupon sebagai digunakan
+    // 4. Tandai kupon sebagai sudah digunakan
     if (couponId) {
       await tx.coupon.update({
         where: { id: couponId },
@@ -130,13 +133,24 @@ export const createTransactionService = async (
       });
     }
 
-    // Potong poin
+    // 5. Potong poin user dan simpan histori
     if (pointsToUse > 0) {
-      await tx.point.create({
+      await tx.user.update({
+        where: { id: userId },
+        data: {
+          totalPoint: {
+            decrement: pointsToUse,
+          },
+        },
+      });
+
+      await tx.pointsHistory.create({
         data: {
           userId,
           amount: -pointsToUse,
-          validUntil: dayjs().add(3, "months").toDate(),
+          type: PointsType.OUT,
+          source: `Penggunaan poin untuk transaksi ${uuid}`,
+          expiredAt: null,
         },
       });
     }

@@ -7,13 +7,13 @@ import Handlebars from "handlebars";
 import { join } from "path";
 import shortid from "shortid";
 import dayjs from "dayjs";
+import { pointQueue } from "../../jobs/queues/point.que";
+// ✅ Tambahkan ini
 
 export const registerService = async (body: any) => {
   const { name, email, password, username, referralCode } = body;
 
-  // 1. Cek email & username
-  // 1. Cek email & username
-  // 1. Cek email & username
+  // 1. Validasi email & username
   const emailCheck = await prisma.user.findFirst({ where: { email } });
   if (emailCheck) throw new ApiError("Email already exists", 400);
 
@@ -26,21 +26,12 @@ export const registerService = async (body: any) => {
   let referredByUser: any = null;
   let generatedCoupon: any = null;
 
-  // 2. Jika pakai referral code
+  // 2. Validasi referral jika ada
   if (referralCode) {
     referredByUser = await prisma.user.findFirst({
       where: { referralCode: referralCode },
     });
     if (!referredByUser) throw new ApiError("Invalid referral code", 400);
-
-    // Tambahkan poin ke user yang direferensikan
-    await prisma.point.create({
-      data: {
-        userId: referredByUser.id,
-        amount: 10000,
-        validUntil: dayjs().add(3, "month").toDate(),
-      },
-    });
   }
 
   // 3. Buat user baru
@@ -51,32 +42,67 @@ export const registerService = async (body: any) => {
       email,
       password: hashedPassword,
       referralCode: generatedReferralCode,
-      role: body.role === "EVENT_ORGANIZER" ? "EVENT_ORGANIZER" : "CUSTOMER", // Sesuaikan role yang diterima
+      role: body.role === "EVENT_ORGANIZER" ? "EVENT_ORGANIZER" : "CUSTOMER",
+      totalPoint: 0,
     },
   });
 
-  // 4. Jika ada referral code, catat ke referral_histories setelah user baru dibuat
+  // 4. Jika ada referral valid
   if (referralCode && referredByUser) {
+    const referralBonus = 10000;
+    const couponBonus = 20000;
+    const validUntil = dayjs().add(3, "month").toDate();
+
+    // Tambah referral history
     await prisma.referralHistory.create({
       data: {
-        userId: referredByUser.id, // User yang memberikan referral
-        referredUserId: newUser.id, // User yang baru dibuat
-        amount: 10000, // Poin yang diberikan
+        userId: referredByUser.id,
+        referredUserId: newUser.id,
+        amount: referralBonus,
       },
     });
 
-    // 5. Buat kupon diskon untuk user baru
+    // Tambah kupon ke user baru
     generatedCoupon = await prisma.coupon.create({
       data: {
         userId: newUser.id,
-        amount: 20000,
-        validUntil: dayjs().add(3, "month").toDate(),
+        amount: couponBonus,
+        validUntil,
         code: `REF-${shortid.generate().toUpperCase()}`,
       },
     });
+
+    // Tambahkan poin ke user yang mereferensikan
+    await prisma.user.update({
+      where: { id: referredByUser.id },
+      data: {
+        totalPoint: { increment: referralBonus },
+        points: {
+          create: {
+            amount: referralBonus,
+            validUntil,
+          },
+        },
+        PointsHistory: {
+          create: {
+            amount: referralBonus,
+            type: "IN",
+            source: "REFERRAL",
+          },
+        },
+      },
+    });
+
+    // Optional: bisa tetap antrikan di queue jika butuh async reward
+    await pointQueue.add("add-point", {
+      userId: referredByUser.id,
+      amount: referralBonus,
+      type: "IN",
+      source: "REFERRAL",
+    });
   }
 
-  // 6. Kirim email sambutan
+  // 5. Kirim email selamat datang
   const templatePath = join(__dirname, "../../templates/welcome.hbs");
   const template = (await fs.readFile(templatePath)).toString();
   const html = Handlebars.compile(template)({ name });
@@ -87,7 +113,7 @@ export const registerService = async (body: any) => {
     html,
   });
 
-  // 7. Return response
+  // 6. Return response
   return {
     message: "Register successful",
     user: {
@@ -98,7 +124,7 @@ export const registerService = async (body: any) => {
     coupon: generatedCoupon && {
       code: generatedCoupon.code,
       amount: generatedCoupon.amount,
-      validUntil: generatedCoupon.valid_until,
+      validUntil: generatedCoupon.validUntil,
     },
   };
 };

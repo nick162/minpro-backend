@@ -20,6 +20,7 @@ model User {
   password     String
   profilePict  String?
   referralCode String?
+  totalPoint   Int
 
   events            Event[]
   transactions      Transaction[]
@@ -29,6 +30,7 @@ model User {
   coupons           Coupon[]
   referralHistories ReferralHistory[] @relation("UserReferralHistories")
   referredHistories ReferralHistory[] @relation("ReferredUserReferralHistories")
+  PointsHistory     PointsHistory[]
 
   @@map("users")
 }
@@ -93,6 +95,7 @@ model Transaction {
   createdAt  DateTime          @default(now())
   deletedAt  DateTime?
   totalPrice Int
+  usedPoint  Int               @default(0)
   status     TransactionStatus
   uuid       String            @unique
 
@@ -140,17 +143,18 @@ model Review {
 }
 
 model Voucher {
-  id         Int       @id @default(autoincrement())
-  userId     Int
-  eventId    Int
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
-  deletedAt  DateTime?
-  amount     Int
-  quota      Int
-  claimed    Int
-  validUntil DateTime
-  code       String    @unique
+  id             Int             @id @default(autoincrement())
+  userId         Int
+  eventId        Int
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  deletedAt      DateTime?
+  amount         Int
+  quota          Int
+  claimed        Int
+  validUntil     DateTime
+  code           String          @unique
+  pointHistories PointsHistory[]
 
   user  User  @relation(fields: [userId], references: [id])
   event Event @relation(fields: [eventId], references: [id])
@@ -202,6 +206,23 @@ model ReferralHistory {
   @@map("referralhistories")
 }
 
+model PointsHistory {
+  id        Int        @id @default(autoincrement())
+  userId    Int
+  amount    Int
+  type      PointsType
+  source    String?
+  createdAt DateTime   @default(now())
+  expiredAt DateTime?
+  deletedAt DateTime?
+
+  user      User     @relation(fields: [userId], references: [id])
+  Voucher   Voucher? @relation(fields: [voucherId], references: [id])
+  voucherId Int?
+
+  @@map("points_histories")
+}
+
 enum Role {
   CUSTOMER
   EVENT_ORGANIZER
@@ -222,4 +243,9 @@ enum TransactionStatus {
   REJECT
   WAITING_FOR_ADMIN_CONFIRMATION
   CANCELED
+}
+
+enum PointsType {
+  IN
+  OUT
 }

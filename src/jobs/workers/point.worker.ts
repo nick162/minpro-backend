@@ -1,29 +1,49 @@
 import { Worker } from "bullmq";
-import { redisConnection } from "../../lib/redis";
 import prisma from "../../config/prisma";
-import { ApiError } from "../../utils/api-error";
+import { redisConnection } from "../../lib/redis";
 
 export const pointWorker = new Worker(
   "user-point-queue",
   async (job) => {
-    const { userId, points, type } = job.data;
+    try {
+      const { userId, amount, action, source = "UNKNOWN" } = job.data;
 
-    const user = await prisma.user.findFirst({
-      where: {
-        id: userId,
-        deletedAt: null,
-      },
-    });
+      const user = await prisma.user.findUnique({ where: { id: userId } });
+      if (!user) throw new Error("User not found");
 
-    if (!user) throw new ApiError("User not found", 404);
+      const isAddition = action === "INCREASE";
 
-    await prisma.point.create({
-      data: {
-        userId,
-        amount: points,
-        validUntil: new Date(Date.now() + 1000 * 60 * 60 * 24 * 90), // 3 bulan
-      },
-    });
+      await prisma.$transaction([
+        prisma.user.update({
+          where: { id: userId },
+          data: {
+            totalPoint: {
+              [isAddition ? "increment" : "decrement"]: amount,
+            },
+          },
+        }),
+        prisma.point.create({
+          data: {
+            userId,
+            amount,
+            validUntil: new Date(Date.now() + 1000 * 60 * 60 * 24 * 90), // 3 bulan
+          },
+        }),
+        prisma.pointsHistory.create({
+          data: {
+            userId,
+            amount,
+            type: isAddition ? "IN" : "OUT",
+            source,
+          },
+        }),
+      ]);
+
+      console.log(`[POINT WORKER] Success for user ${userId}`);
+    } catch (error) {
+      console.error("[POINT WORKER] Error:", error);
+      throw error;
+    }
   },
   { connection: redisConnection }
 );
