@@ -1,8 +1,10 @@
 import dayjs from "dayjs";
+import crypto from "crypto";
 import { ApiError } from "../../utils/api-error";
 import prisma from "../../config/prisma";
-import { Prisma, PointsType } from "@prisma/client";
-import crypto from "crypto";
+import { PointsType } from "@prisma/client";
+import { pointQueue } from "../../jobs/queues/point.que";
+import { userTransactionQueue } from "../../jobs/queues/transaction.que";
 
 interface CreateTransactionInput {
   userId: number;
@@ -90,7 +92,6 @@ export const createTransactionService = async (
 
   const uuid = crypto.randomUUID();
 
-  // Jalankan transaksi DB
   const transaction = await prisma.$transaction(async (tx) => {
     // 1. Buat transaksi
     const trx = await tx.transaction.create({
@@ -104,7 +105,7 @@ export const createTransactionService = async (
       },
     });
 
-    // 2. Buat detail transaksi
+    // 2. Detail transaksi
     await tx.transactionDetail.create({
       data: {
         uuid: crypto.randomUUID(),
@@ -115,7 +116,7 @@ export const createTransactionService = async (
       },
     });
 
-    // 3. Kurangi jumlah kursi tersedia
+    // 3. Kurangi kursi
     await tx.ticket.update({
       where: { id: ticketId },
       data: {
@@ -125,7 +126,7 @@ export const createTransactionService = async (
       },
     });
 
-    // 4. Tandai kupon sebagai sudah digunakan
+    // 4. Tandai kupon jika digunakan
     if (couponId) {
       await tx.coupon.update({
         where: { id: couponId },
@@ -133,30 +134,25 @@ export const createTransactionService = async (
       });
     }
 
-    // 5. Potong poin user dan simpan histori
-    if (pointsToUse > 0) {
-      await tx.user.update({
-        where: { id: userId },
-        data: {
-          totalPoint: {
-            decrement: pointsToUse,
-          },
-        },
-      });
-
-      await tx.pointsHistory.create({
-        data: {
-          userId,
-          amount: -pointsToUse,
-          type: PointsType.OUT,
-          source: `Penggunaan poin untuk transaksi ${uuid}`,
-          expiredAt: null,
-        },
-      });
-    }
-
     return trx;
   });
+
+  // 5. Kurangi poin lewat antrian (queue)
+  if (pointsToUse > 0) {
+    await pointQueue.add("decrease-point", {
+      userId,
+      amount: pointsToUse,
+      action: "OUT",
+      source: `Penggunaan poin untuk transaksi ${uuid}`,
+    });
+  }
+
+  // 6. Tambahkan ke transaction queue untuk pengecekan expired
+  await userTransactionQueue.add(
+    "check-expired-transaction",
+    { uuid },
+    { delay: 1000 * 60 * 15 } // delay 15 menit
+  );
 
   return transaction;
 };

@@ -8,7 +8,7 @@ import { transporter } from "../../lib/nodmailer";
 export const transactionAccepted = async (transactionId: number) => {
   const transaction = await prisma.transaction.findUnique({
     where: { id: transactionId },
-    include: { user: true },
+    include: { user: true, event: true },
   });
 
   if (!transaction) throw new ApiError("Transaksi tidak ditemukan", 404);

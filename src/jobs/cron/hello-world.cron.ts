@@ -4,6 +4,6 @@ import { scheduleJob } from "node-schedule";
 //   console.log("hello world");
 // });
 
-scheduleJob("job-running-every-time-1-minute", "* * * * *", () => {
+scheduleJob("job-running-every-time-12-hours", "* * * * *", () => {
   console.log("hahahhhaha");
 });
