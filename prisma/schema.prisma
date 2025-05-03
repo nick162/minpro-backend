@@ -234,6 +234,7 @@ enum Category {
   SPORT
   HEALTH
   TECHNOLOGY
+  MUSIC
 }
 
 enum TransactionStatus {

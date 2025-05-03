@@ -19,6 +19,7 @@ app.use("/auth", authRouter);
 app.use("/user", userRouter);
 app.use("/event", eventRouter);
 app.use("/ticket", ticketRouter);
+app.use("/transaction", ticketRouter);
 
 /* midlleware */
 app.use(errorMiddleware); // harus paling bawah, dibawah api endpoint

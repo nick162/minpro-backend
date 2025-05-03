@@ -5,5 +5,5 @@ import { scheduleJob } from "node-schedule";
 // });
 
 scheduleJob("job-running-every-time-12-hours", "* * * * *", () => {
-  console.log("hahahhhaha");
+  console.log("Your Coupon Valid-day decreased");
 });

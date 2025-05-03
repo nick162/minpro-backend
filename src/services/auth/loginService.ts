@@ -38,5 +38,5 @@ export const loginService = async (
   const { password: pw, ...userWithoutPassword } = user;
 
   // Kirim user dan tokennya juga
-  return { ...userWithoutPassword, token };
+  return { ...userWithoutPassword, accessToken: token };
 };
