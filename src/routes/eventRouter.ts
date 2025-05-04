@@ -38,7 +38,7 @@ router.patch(
 router.delete(
   "/:id",
   verifyTokens,
-  verifyRole(["ORGANIZER"]),
+  verifyRole(["EVENT_ORGANIZER"]),
   deleteEventController
 );
 

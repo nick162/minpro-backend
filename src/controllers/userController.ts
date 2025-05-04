@@ -58,36 +58,36 @@ export const updateUserProfileController = async (
         .send({ message: "Role not allowed to update profile" });
     }
 
-    const updated = await updateUserProfileService(
+    const result = await updateUserProfileService(
       res.locals.user.id,
       req.body,
       profilePict
     );
 
-    // Ambil data user terbaru dari database
-    const user = await prisma.user.findUnique({
-      where: { id: updated.id },
-    });
+    // // Ambil data user terbaru dari database
+    // const user = await prisma.user.findUnique({
+    //   where: { id: updated.id },
+    // });
 
-    if (!user) {
-      return res.status(404).send({ message: "User not found after update" });
-    }
+    // if (!user) {
+    //   return res.status(404).send({ message: "User not found after update" });
+    // }
 
-    // Buat token baru berdasarkan data user yang telah diperbarui
-    const newToken = createToken({
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      role: user.role,
-      profilePict: user.profilePict,
-    });
+    // // Buat token baru berdasarkan data user yang telah diperbarui
+    // const newToken = createToken({
+    //   id: user.id,
+    //   email: user.email,
+    //   name: user.name,
+    //   role: user.role,
+    //   profilePict: user.profilePict,
+    // });
 
-    // Buat hasil response
-    const result = {
-      message: "Profile updated successfully",
-      user,
-      token: newToken,
-    };
+    // // Buat hasil response
+    // const result = {
+    //   message: "Profile updated successfully",
+    //   user,
+    //   token: newToken,
+    // };
 
     // Kirim response lengkap
     res.status(200).send(result);

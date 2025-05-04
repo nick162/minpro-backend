@@ -35,8 +35,8 @@ export const updateEventController = async (
   next: NextFunction
 ) => {
   try {
-    const user = res.locals.user;
-    if (!user?.id) {
+    const authUserId = res.locals.user;
+    if (!authUserId?.id) {
       throw new ApiError("Unauthorized: user ID not found", 401);
     }
 
@@ -51,7 +51,7 @@ export const updateEventController = async (
 
     const result = await updateEventService(
       eventId,
-      user.id, // <- ini posisi userId yang benar
+      authUserId.id, // <- ini posisi userId yang benar
       req.body,
       thumbnail
     );

@@ -2,6 +2,8 @@ import { User } from "@prisma/client";
 import prisma from "../../config/prisma";
 import { ApiError } from "../../utils/api-error";
 import { cloudinaryRemove, cloudinaryUpload } from "../../lib/cloudinary";
+import { sign } from "jsonwebtoken";
+import { JWT_SECRET_KEY } from "../../config/env";
 
 export const updateUserProfileService = async (
   id: number,
@@ -32,7 +34,12 @@ export const updateUserProfileService = async (
     const uploaded = await cloudinaryUpload(profileImage);
     imageUrl = uploaded.secure_url;
   }
+  const tokenPayload = { id: user.id, role: user.role };
 
+  // Lalu kita akan mengambil token untuk dikirim nantinya agar tau usernya juga
+  const token = sign(tokenPayload, JWT_SECRET_KEY!, {
+    expiresIn: "2h",
+  });
   const updated = await prisma.user.update({
     where: { id },
     data: {
@@ -42,5 +49,5 @@ export const updateUserProfileService = async (
   });
 
   const { password, ...userWithoutPassword } = updated;
-  return userWithoutPassword;
+  return { ...userWithoutPassword, accessToken: token };
 };

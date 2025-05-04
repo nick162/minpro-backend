@@ -1,3 +1,5 @@
+// services/ticket/getTicketsService.ts
+
 import prisma from "../../config/prisma";
 import { ApiError } from "../../utils/api-error";
 
@@ -7,10 +9,7 @@ export const getTicketsService = async () => {
     orderBy: { createdAt: "desc" },
   });
 
-  if (!tickets || tickets.length === 0) {
-    throw new ApiError("No tickets found", 404);
-  }
-
+  // Tidak perlu lempar error jika kosong
   return {
     message: "All available tickets",
     tickets,

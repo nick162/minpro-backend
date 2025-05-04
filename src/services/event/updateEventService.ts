@@ -1,48 +1,51 @@
 import prisma from "../../config/prisma";
 import { ApiError } from "../../utils/api-error";
-import { cloudinaryUpload } from "../../lib/cloudinary";
+import { cloudinaryRemove, cloudinaryUpload } from "../../lib/cloudinary";
 import { generateSlug } from "../../utils/generalUtils";
 import { Event } from "@prisma/client";
 
 export const updateEventService = async (
   id: number,
-  userId: number,
+  authUserId: number,
   body: Partial<Event>,
   thumbnail?: Express.Multer.File
 ) => {
-  // 1. Check if event exists
-  const existingEvent = await prisma.event.findUnique({ where: { id } });
+  const existingEvent = await prisma.event.findFirst({
+    where: { id },
+  });
+
   if (!existingEvent) {
     throw new ApiError("Event not found", 404);
   }
 
-  if (existingEvent.userId !== userId) {
-    throw new ApiError("You are not authorized to update this event", 403);
+  if (existingEvent.userId !== authUserId) {
+    throw new ApiError("Unauthorized", 403);
   }
 
-  // 2. If name is provided, generate new slug
+  let newSlug = existingEvent.slug;
+
   if (body.eventName) {
-    body.slug = generateSlug(body.eventName);
+    const EventName = await prisma.event.findFirst({
+      where: { eventName: body.eventName },
+    });
+
+    if (EventName) {
+      throw new ApiError("Event name already exist", 400);
+    }
+
+    newSlug = generateSlug(body.eventName);
   }
 
-  // 3. Convert numeric fields if provided
+  let newThumbnail = existingEvent.thumbnail;
 
-  if (body.userId) body.userId = Number(body.userId);
-
-  // 4. If thumbnail is provided, upload to Cloudinary
   if (thumbnail) {
+    await cloudinaryRemove(existingEvent.thumbnail);
     const { secure_url } = await cloudinaryUpload(thumbnail);
-    body.thumbnail = secure_url;
+    newThumbnail = secure_url;
   }
 
-  // 5. Update event
-  const updatedEvent = await prisma.event.update({
+  return await prisma.event.update({
     where: { id },
-    data: body,
+    data: { ...body, slug: newSlug, thumbnail: newThumbnail },
   });
-
-  return {
-    message: "Event has been updated successfully",
-    event: updatedEvent,
-  };
 };
