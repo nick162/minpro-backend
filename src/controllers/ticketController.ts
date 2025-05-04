@@ -1,9 +1,10 @@
 import { Request, Response, NextFunction } from "express";
 import { createTicketService } from "../services/ticket/createTicketService";
 import { getTicketsService } from "../services/ticket/getTicketsService";
-import { getTicketService } from "../services/ticket/getTicketService";
+
 import { deleteTicketService } from "../services/ticket/deleteTickerService";
 import { updateTicketService } from "../services/ticket/updateTicketService";
+import { getTicketByIdService } from "../services/ticket/getTicketByIdService";
 
 export const createTicketController = async (
   req: Request,
@@ -24,17 +25,32 @@ export const updateTicketController = async (
   next: NextFunction
 ) => {
   try {
-    const { id, sold } = req.body;
+    const id = Number(req.params.id);
 
-    if (!id || typeof id !== "number") {
-      throw new Error("Ticket id is required and must be a number");
-    }
-    if (!sold || typeof sold !== "number") {
-      throw new Error("Sold value is required and must be a number");
+    if (!id || isNaN(id)) {
+      throw new Error("Ticket ID is required and must be a number");
     }
 
-    const result = await updateTicketService(id, sold);
-    res.status(200).send(result);
+    const {
+      ticketType,
+      price,
+      availableSeats,
+      sold,
+    }: {
+      ticketType?: string;
+      price?: number;
+      availableSeats?: number;
+      sold?: number;
+    } = req.body;
+
+    const result = await updateTicketService(id, {
+      ticketType,
+      price,
+      availableSeats,
+      sold,
+    });
+
+    res.status(200).json(result);
   } catch (error) {
     next(error);
   }
@@ -51,19 +67,19 @@ export const getTicketsController = async (
     next(error);
   }
 };
-export const getTicketController = async (
+export const getTicketByIdController = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
   try {
-    const result = await getTicketService(Number(req.params.id));
+    const result = await getTicketByIdService(Number(req.params.id));
     res.status(200).send(result);
   } catch (error) {
     next(error);
   }
 };
-export const deleteicketController = async (
+export const deleteticketController = async (
   req: Request,
   res: Response,
   next: NextFunction

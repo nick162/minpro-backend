@@ -1,7 +1,7 @@
 import prisma from "../../config/prisma";
 import { ApiError } from "../../utils/api-error";
 
-export const getTicketService = async (id: number) => {
+export const getTicketByIdService = async (id: number) => {
   const ticket = await prisma.ticket.findFirst({
     where: { id, deletedAt: null },
   });

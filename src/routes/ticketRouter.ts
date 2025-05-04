@@ -4,17 +4,18 @@ import { verifyTokens } from "../lib/jwt";
 import { verifyRole } from "../middlewares/role-middleware";
 import {
   createTicketController,
-  getTicketController,
+  deleteticketController,
+  getTicketByIdController,
   getTicketsController,
   updateTicketController,
 } from "../controllers/ticketController";
-import { deleteTicketService } from "../services/ticket/deleteTickerService";
 
 const router = Router();
 
+router.delete("/:id", deleteticketController);
 router.get("/", getTicketsController);
-router.get("/:slug", getTicketController);
-router.delete("/:id", deleteTicketService);
+router.get("/:id", getTicketByIdController);
+
 router.post(
   "/",
   verifyTokens,
@@ -25,7 +26,7 @@ router.post(
 router.patch(
   "/:id",
   verifyTokens,
-  verifyRole(["ORGANIZER"]),
+  verifyRole(["EVENT_ORGANIZER"]),
   updateTicketController
 );
 
