@@ -5,6 +5,7 @@ import authRouter from "./routes/authRouter";
 import eventRouter from "./routes/eventRouter";
 import ticketRouter from "./routes/ticketRouter";
 import userRouter from "./routes/userRouter";
+import transactionRouter from "./routes/transactionRoute";
 
 import cors from "cors";
 
@@ -19,7 +20,7 @@ app.use("/auth", authRouter);
 app.use("/user", userRouter);
 app.use("/event", eventRouter);
 app.use("/ticket", ticketRouter);
-app.use("/transaction", ticketRouter);
+app.use("/transaction", transactionRouter);
 
 /* midlleware */
 app.use(errorMiddleware); // harus paling bawah, dibawah api endpoint

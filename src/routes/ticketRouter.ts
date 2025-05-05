@@ -19,7 +19,7 @@ router.get("/:id", getTicketByIdController);
 router.post(
   "/",
   verifyTokens,
-  verifyRole(["CUSTOMER"]),
+  verifyRole(["EVENT_ORGANIZER"]),
   createTicketController
 );
 

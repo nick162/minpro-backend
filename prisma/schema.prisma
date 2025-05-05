@@ -92,6 +92,8 @@ model Transaction {
   id         Int               @id @default(autoincrement())
   userId     Int
   eventId    Int
+  voucherId  Int? // relasi ke voucher yang diklaim
+  couponId   Int? // relasi ke coupon yang dipakai
   createdAt  DateTime          @default(now())
   deletedAt  DateTime?
   totalPrice Int
@@ -101,6 +103,8 @@ model Transaction {
 
   user               User                @relation(fields: [userId], references: [id])
   event              Event               @relation(fields: [eventId], references: [id])
+  voucher            Voucher?            @relation(fields: [voucherId], references: [id])
+  coupon             Coupon?             @relation(fields: [couponId], references: [id])
   transactionDetails TransactionDetail[]
   review             Review?
 
@@ -156,8 +160,9 @@ model Voucher {
   code           String          @unique
   pointHistories PointsHistory[]
 
-  user  User  @relation(fields: [userId], references: [id])
-  event Event @relation(fields: [eventId], references: [id])
+  user        User          @relation(fields: [userId], references: [id])
+  event       Event         @relation(fields: [eventId], references: [id])
+  Transaction Transaction[]
 
   @@map("vouchers")
 }
@@ -173,7 +178,8 @@ model Coupon {
   validUntil DateTime
   code       String    @unique
 
-  user User @relation(fields: [userId], references: [id])
+  user        User          @relation(fields: [userId], references: [id])
+  Transaction Transaction[]
 
   @@map("coupons")
 }
@@ -238,8 +244,8 @@ enum Category {
 }
 
 enum TransactionStatus {
-  EXPIRED
   WAITING_FOR_PAYMENT
+  EXPIRED
   ACCEPTED
   REJECT
   WAITING_FOR_ADMIN_CONFIRMATION

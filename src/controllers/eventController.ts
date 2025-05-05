@@ -36,14 +36,8 @@ export const updateEventController = async (
 ) => {
   try {
     const authUserId = res.locals.user;
-    if (!authUserId?.id) {
-      throw new ApiError("Unauthorized: user ID not found", 401);
-    }
 
     const eventId = parseInt(req.params.id);
-    if (isNaN(eventId)) {
-      throw new ApiError("Invalid event ID", 400);
-    }
 
     const files =
       (req.files as { [fieldname: string]: Express.Multer.File[] }) || {};
@@ -51,7 +45,7 @@ export const updateEventController = async (
 
     const result = await updateEventService(
       eventId,
-      authUserId.id, // <- ini posisi userId yang benar
+      authUserId.id,
       req.body,
       thumbnail
     );

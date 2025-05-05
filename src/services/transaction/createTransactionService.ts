@@ -2,7 +2,7 @@ import dayjs from "dayjs";
 import crypto from "crypto";
 import { ApiError } from "../../utils/api-error";
 import prisma from "../../config/prisma";
-import { PointsType } from "@prisma/client";
+import { PointsType, Transaction } from "@prisma/client";
 import { pointQueue } from "../../jobs/queues/point.que";
 import { userTransactionQueue } from "../../jobs/queues/transaction.que";
 
@@ -17,6 +17,8 @@ interface CreateTransactionInput {
 }
 
 export const createTransactionService = async (
+  // authUserId:number,
+  // body:Transaction
   data: CreateTransactionInput
 ) => {
   const {

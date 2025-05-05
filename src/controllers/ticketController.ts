@@ -86,7 +86,7 @@ export const deleteticketController = async (
 ) => {
   try {
     const result = await deleteTicketService(Number(req.params.id));
-    res.status(200).send(result);
+    res.status(200).json(result);
   } catch (error) {
     next(error);
   }
