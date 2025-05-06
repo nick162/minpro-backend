@@ -6,6 +6,7 @@ import { getEventByCategoryService } from "../services/event/getEventByCategory"
 import { deleteEventService } from "../services/event/deleteEventService";
 import { ApiError } from "../utils/api-error";
 import { updateEventService } from "../services/event/updateEventService";
+import { getAttendeeList } from "../services/transaction/getAttendanceService";
 
 export const createEventController = async (
   req: Request,

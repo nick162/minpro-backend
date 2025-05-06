@@ -3,6 +3,8 @@ import { verifyTokens } from "../lib/jwt";
 import { verifyRole } from "../middlewares/role-middleware";
 import {
   acceptTransactionController,
+  getAllAcceptedTransactionsController,
+  getAttendeeListController,
   getTransactionsController,
   getWaitingTransactionController,
   rejectTransactionController,
@@ -10,6 +12,12 @@ import {
 
 const router = Router();
 
+router.get(
+  "/statistic",
+  verifyTokens,
+  verifyRole(["EVENT_ORGANIZER"]),
+  getAllAcceptedTransactionsController
+);
 router.get(
   "/",
   verifyTokens,
@@ -34,6 +42,13 @@ router.get(
   verifyTokens,
   verifyRole(["EVENT_ORGANIZER"]),
   getWaitingTransactionController
+);
+
+router.get(
+  "/attendance",
+  verifyTokens,
+  verifyRole(["EVENT_ORGANIZER"]),
+  getAttendeeListController
 );
 
 export default router;

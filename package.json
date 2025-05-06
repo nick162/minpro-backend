@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
+    "worker:transaction": "ts-node src/jobs/workers/transaction.worker.ts",
     "build": "tsc && cpx src/templates/**/* dist/templates",
     "start": "npm run build && node dist/index.js",
     "dev": "nodemon src/index.ts",

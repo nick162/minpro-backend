@@ -1,69 +1,54 @@
-// src/jobs/workers/transaction.worker.ts
 import { Worker } from "bullmq";
-import prisma from "../../config/prisma";
 import { redisConnection } from "../../lib/redis";
-import { PointsType } from "@prisma/client";
+import prisma from "../../config/prisma";
 
-export const userTransactionWorker = new Worker(
-  "user-transaction-queue",
+export const transactionWorker = new Worker(
+  "transaction",
   async (job) => {
-    const uuid = job.data.uuid;
+    const { transactionId, action } = job.data;
 
     const transaction = await prisma.transaction.findUnique({
-      where: { uuid },
+      where: { id: transactionId },
+      include: {
+        transactionDetails: { include: { ticket: true } },
+      },
     });
 
-    if (!transaction) return;
+    if (!transaction || transaction.deletedAt) return;
 
-    if (transaction.status === "WAITING_FOR_PAYMENT") {
+    if (action === "ACCEPT") {
+      await prisma.transaction.update({
+        where: { id: transactionId },
+        data: { status: "SUCCESS" },
+      });
+    }
+
+    if (action === "REJECT") {
       await prisma.$transaction(async (tx) => {
-        // 1. Update status menjadi EXPIRED
+        await Promise.all(
+          transaction.transactionDetails.map((detail) =>
+            tx.ticket.update({
+              where: { id: detail.ticketId },
+              data: {
+                availableSeats: { increment: detail.qty },
+              },
+            })
+          )
+        );
+
+        await Promise.all(
+          transaction.transactionDetails.map((detail) =>
+            tx.transactionDetail.update({
+              where: { id: detail.id },
+              data: { deletedAt: new Date() },
+            })
+          )
+        );
+
         await tx.transaction.update({
-          where: { uuid },
-          data: { status: "EXPIRED" },
+          where: { id: transactionId },
+          data: { status: "REJECT" },
         });
-
-        // 2. Kembalikan kursi tiket
-        const detail = await tx.transactionDetail.findFirst({
-          where: { transactionId: transaction.id },
-        });
-
-        if (detail) {
-          await tx.ticket.update({
-            where: { id: detail.ticketId },
-            data: {
-              availableSeats: {
-                increment: detail.qty,
-              },
-            },
-          });
-        }
-
-        // 3. Kembalikan poin user jika ada poin yang digunakan
-        if (
-          transaction.usedPoint &&
-          transaction.usedPoint > 0 &&
-          transaction.userId
-        ) {
-          await tx.user.update({
-            where: { id: transaction.userId },
-            data: {
-              totalPoint: {
-                increment: transaction.usedPoint,
-              },
-            },
-          });
-
-          // 4. Tambahkan riwayat pengembalian poin
-          await tx.pointsHistory.create({
-            data: {
-              userId: transaction.userId,
-              amount: transaction.usedPoint,
-              type: PointsType.IN,
-              source: `Pengembalian poin dari transaksi ${transaction.uuid} yang kedaluwarsa`,
-            },
-          });
-        }
       });
     }
   },
