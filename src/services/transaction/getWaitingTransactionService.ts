@@ -1,5 +1,3 @@
-// src/services/transaction/getWaitingTransactionService.ts
-
 import prisma from "../../config/prisma";
 
 export const getWaitingTransactionService = async () => {

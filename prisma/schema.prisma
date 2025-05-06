@@ -249,7 +249,7 @@ enum TransactionStatus {
   ACCEPTED
   REJECT
   WAITING_FOR_ADMIN_CONFIRMATION
-  CANCELED
+  SUCCESS
 }
 
 enum PointsType {

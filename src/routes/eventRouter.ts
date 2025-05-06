@@ -42,11 +42,4 @@ router.delete(
   deleteEventController
 );
 
-// router.patch(
-//   "/:id",
-//   verifyTokens,
-//   verifyRole(["ORGANIZER"]),
-//   update
-// )
-
 export default router;

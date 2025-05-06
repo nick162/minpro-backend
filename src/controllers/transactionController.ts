@@ -4,6 +4,8 @@ import { transactionRejected } from "../services/transaction/transactionRejectSe
 import { getTransactionsService } from "../services/transaction/getTransactionsService";
 import { ApiError } from "../utils/api-error";
 import { getWaitingTransactionService } from "../services/transaction/getWaitingTransactionService";
+import { getAttendeeList } from "../services/transaction/getAttendanceService";
+import { getTransactionStatisticService } from "../services/transaction/getStatisticTransactionService";
 
 export const getTransactionsController = async (
   req: Request,
@@ -61,6 +63,32 @@ export const getWaitingTransactionController = async (
   try {
     const result = await getWaitingTransactionService();
     res.status(200).send(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getAttendeeListController = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const attendees = await getAttendeeList();
+    res.status(200).json({ attendees });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getAllAcceptedTransactionsController = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const transactions = await getTransactionStatisticService();
+    res.status(200).send(transactions);
   } catch (error) {
     next(error);
   }

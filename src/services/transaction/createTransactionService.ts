@@ -4,7 +4,7 @@ import { ApiError } from "../../utils/api-error";
 import prisma from "../../config/prisma";
 import { PointsType, Transaction } from "@prisma/client";
 import { pointQueue } from "../../jobs/queues/point.que";
-import { userTransactionQueue } from "../../jobs/queues/transaction.que";
+import { userTransactionQueue } from "../../jobs/queues/userTransaction.que";
 
 interface CreateTransactionInput {
   userId: number;
@@ -95,7 +95,6 @@ export const createTransactionService = async (
   const uuid = crypto.randomUUID();
 
   const transaction = await prisma.$transaction(async (tx) => {
-    // 1. Buat transaksi
     const trx = await tx.transaction.create({
       data: {
         userId,
@@ -118,7 +117,6 @@ export const createTransactionService = async (
       },
     });
 
-    // 3. Kurangi kursi
     await tx.ticket.update({
       where: { id: ticketId },
       data: {
@@ -128,7 +126,6 @@ export const createTransactionService = async (
       },
     });
 
-    // 4. Tandai kupon jika digunakan
     if (couponId) {
       await tx.coupon.update({
         where: { id: couponId },
@@ -139,7 +136,6 @@ export const createTransactionService = async (
     return trx;
   });
 
-  // 5. Kurangi poin lewat antrian (queue)
   if (pointsToUse > 0) {
     await pointQueue.add("decrease-point", {
       userId,
@@ -149,7 +145,6 @@ export const createTransactionService = async (
     });
   }
 
-  // 6. Tambahkan ke transaction queue untuk pengecekan expired
   await userTransactionQueue.add(
     "check-expired-transaction",
     { uuid },

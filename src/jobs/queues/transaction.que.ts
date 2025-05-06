@@ -1,6 +1,6 @@
 import { Queue } from "bullmq";
 import { redisConnection } from "../../lib/redis";
 
-export const userTransactionQueue = new Queue("user-transaction-queue", {
+export const transactionQueue = new Queue("transaction", {
   connection: redisConnection,
 });
