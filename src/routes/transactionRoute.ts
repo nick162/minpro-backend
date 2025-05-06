@@ -5,6 +5,7 @@ import {
   acceptTransactionController,
   getAllAcceptedTransactionsController,
   getAttendeeListController,
+  getTransactionByIdController,
   getTransactionsController,
   getWaitingTransactionController,
   rejectTransactionController,
@@ -42,6 +43,13 @@ router.get(
   verifyTokens,
   verifyRole(["EVENT_ORGANIZER"]),
   getWaitingTransactionController
+);
+
+router.get(
+  "/:id",
+  verifyTokens,
+  verifyRole(["CUSTOMER"]),
+  getTransactionByIdController
 );
 
 router.get(
