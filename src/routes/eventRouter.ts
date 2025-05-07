@@ -18,7 +18,7 @@ const router = Router();
 router.get("/", getEventsController);
 router.get("/:slug", getEventController);
 router.get("/:category", getEventsByCategoryController);
-// router.get("/delete", getDeletedListProductsController);
+
 router.post(
   "/",
   verifyTokens,

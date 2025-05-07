@@ -3,8 +3,9 @@ import { verifyTokens } from "../lib/jwt";
 import { verifyRole } from "../middlewares/role-middleware";
 import {
   acceptTransactionController,
-  getAllAcceptedTransactionsController,
+  createTransactionController,
   getAttendeeListController,
+  getStatisticTransactionsController,
   getTransactionByIdController,
   getTransactionsController,
   getWaitingTransactionController,
@@ -14,28 +15,24 @@ import {
 const router = Router();
 
 router.get(
-  "/statistic",
-  verifyTokens,
-  verifyRole(["EVENT_ORGANIZER"]),
-  getAllAcceptedTransactionsController
-);
-router.get(
   "/",
   verifyTokens,
   verifyRole(["EVENT_ORGANIZER"]),
   getTransactionsController
 );
-router.patch(
-  "/accept/:id",
+
+router.get(
+  "/statistic",
   verifyTokens,
   verifyRole(["EVENT_ORGANIZER"]),
-  acceptTransactionController
+  getStatisticTransactionsController
 );
-router.patch(
-  "/reject/:id",
+
+router.get(
+  "/attendance",
   verifyTokens,
   verifyRole(["EVENT_ORGANIZER"]),
-  rejectTransactionController
+  getAttendeeListController
 );
 
 router.get(
@@ -52,11 +49,24 @@ router.get(
   getTransactionByIdController
 );
 
-router.get(
-  "/attendance",
+router.post(
+  "/",
+  verifyTokens,
+  verifyRole(["CUSTOMER"]),
+  createTransactionController
+);
+
+router.patch(
+  "/accept/:id",
   verifyTokens,
   verifyRole(["EVENT_ORGANIZER"]),
-  getAttendeeListController
+  acceptTransactionController
+);
+router.patch(
+  "/reject/:id",
+  verifyTokens,
+  verifyRole(["EVENT_ORGANIZER"]),
+  rejectTransactionController
 );
 
 export default router;

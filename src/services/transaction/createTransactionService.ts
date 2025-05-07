@@ -2,7 +2,7 @@ import dayjs from "dayjs";
 import crypto from "crypto";
 import { ApiError } from "../../utils/api-error";
 import prisma from "../../config/prisma";
-import { PointsType, Transaction } from "@prisma/client";
+import { PointsType } from "@prisma/client";
 import { pointQueue } from "../../jobs/queues/point.que";
 import { userTransactionQueue } from "../../jobs/queues/userTransaction.que";
 
@@ -17,8 +17,6 @@ interface CreateTransactionInput {
 }
 
 export const createTransactionService = async (
-  // authUserId:number,
-  // body:Transaction
   data: CreateTransactionInput
 ) => {
   const {
@@ -31,25 +29,37 @@ export const createTransactionService = async (
     voucherId,
   } = data;
 
+  // Pastikan userId adalah integer
+  const userIdInt = Number(userId); // Mengonversi userId menjadi angka (integer)
+
+  if (isNaN(userIdInt)) {
+    throw new ApiError("User ID tidak valid", 400); // Cek jika konversi gagal
+  }
+
   if (quantity < 1) throw new ApiError("Minimal beli 1 tiket", 400);
 
-  const user = await prisma.user.findUnique({ where: { id: userId } });
+  // 1. Cek apakah pengguna ada
+  const user = await prisma.user.findUnique({ where: { id: userIdInt } });
   if (!user) throw new ApiError("User tidak ditemukan", 404);
 
-  const event = await prisma.event.findFirst({
+  // 2. Cek apakah event ada
+  const event = await prisma.event.findUnique({
     where: { id: eventId, deletedAt: null },
   });
   if (!event) throw new ApiError("Event tidak tersedia", 404);
 
+  // 3. Cek apakah tiket ada dan valid
   const ticket = await prisma.ticket.findUnique({ where: { id: ticketId } });
   if (!ticket || ticket.eventId !== eventId)
     throw new ApiError("Tiket tidak valid", 404);
 
+  // 4. Cek apakah tiket cukup tersedia
   if (ticket.availableSeats < quantity)
     throw new ApiError("Tiket tidak mencukupi", 400);
 
   let totalPrice = ticket.price * quantity;
 
+  // 5. Cek apakah voucher valid
   let voucher = null;
   if (voucherId) {
     voucher = await prisma.voucher.findUnique({ where: { id: voucherId } });
@@ -59,6 +69,7 @@ export const createTransactionService = async (
     totalPrice -= voucher.amount;
   }
 
+  // 6. Cek apakah coupon valid
   let coupon = null;
   if (couponId) {
     coupon = await prisma.coupon.findUnique({ where: { id: couponId } });
@@ -73,9 +84,10 @@ export const createTransactionService = async (
     totalPrice -= coupon.amount;
   }
 
+  // 7. Cek jumlah poin yang tersedia
   const availablePoints = await prisma.point.aggregate({
     where: {
-      userId,
+      userId: userIdInt, // Menggunakan userId yang telah dikonversi
       deletedAt: null,
       validUntil: { gte: new Date() },
     },
@@ -94,10 +106,11 @@ export const createTransactionService = async (
 
   const uuid = crypto.randomUUID();
 
+  // Melakukan transaksi dengan Prisma
   const transaction = await prisma.$transaction(async (tx) => {
     const trx = await tx.transaction.create({
       data: {
-        userId,
+        userId: userIdInt, // Menggunakan userId yang telah dikonversi
         eventId,
         totalPrice,
         uuid,
@@ -106,7 +119,6 @@ export const createTransactionService = async (
       },
     });
 
-    // 2. Detail transaksi
     await tx.transactionDetail.create({
       data: {
         uuid: crypto.randomUUID(),
@@ -136,19 +148,21 @@ export const createTransactionService = async (
     return trx;
   });
 
+  // Menurunkan poin jika digunakan
   if (pointsToUse > 0) {
     await pointQueue.add("decrease-point", {
-      userId,
+      userId: userIdInt, // Menggunakan userId yang telah dikonversi
       amount: pointsToUse,
       action: "OUT",
       source: `Penggunaan poin untuk transaksi ${uuid}`,
     });
   }
 
+  // Menambahkan pekerjaan untuk memeriksa transaksi kadaluarsa
   await userTransactionQueue.add(
     "check-expired-transaction",
     { uuid },
-    { delay: 1000 * 60 * 15 } // delay 15 menit
+    { delay: 1000 * 60 * 15 } // 15 menit
   );
 
   return transaction;
